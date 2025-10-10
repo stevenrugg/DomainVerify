@@ -429,34 +429,54 @@ export default function Dashboard() {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="font-medium" data-testid={`text-key-name-${key.id}`}>{key.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <code className="text-sm font-mono" data-testid={`text-key-value-${key.id}`}>
-                              {maskKey(key)}
+                          <div className="flex items-center gap-2 mt-2">
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded" data-testid={`text-key-value-${key.id}`}>
+                              {revealedKeys.has(key.id) ? (
+                                // Show the actual key if available and revealed
+                                (key as any).key ? (key as any).key : `${key.keyPrefix}...${key.keySuffix}`
+                              ) : (
+                                // Show bullets when hidden
+                                "••••••••••••••••••••••••••••••••"
+                              )}
                             </code>
-                            {!(key as any).key && (
-                              <span className="text-xs text-muted-foreground">(hidden for security)</span>
-                            )}
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => toggleKeyVisibility(key.id)}
+                                data-testid={`button-toggle-visibility-${key.id}`}
+                              >
+                                {revealedKeys.has(key.id) ? (
+                                  <EyeOff className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Eye className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  const keyToCopy = (key as any).key || `${key.keyPrefix}...${key.keySuffix}`;
+                                  copyToClipboard(keyToCopy, key.id);
+                                }}
+                                data-testid={`button-copy-key-${key.id}`}
+                              >
+                                {copiedKey === key.id ? (
+                                  <Check className="h-3.5 w-3.5 text-green-500" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-2">
                             Created {formatDistanceToNow(new Date(key.createdAt), { addSuffix: true })}
                             {key.lastUsedAt && ` • Last used ${formatDistanceToNow(new Date(key.lastUsedAt), { addSuffix: true })}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {(key as any).key && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => copyToClipboard((key as any).key, key.id)}
-                              data-testid={`button-copy-key-${key.id}`}
-                            >
-                              {copiedKey === key.id ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
                           <Button
                             variant="destructive"
                             size="icon"
