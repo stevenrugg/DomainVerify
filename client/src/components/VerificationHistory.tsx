@@ -2,17 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-
-interface VerificationRecord {
-  id: string;
-  domain: string;
-  method: "dns" | "file";
-  status: "pending" | "verified" | "failed";
-  createdAt: Date;
-}
+import type { Verification } from "@shared/schema";
 
 interface VerificationHistoryProps {
-  records: VerificationRecord[];
+  records: Verification[];
 }
 
 export function VerificationHistory({ records }: VerificationHistoryProps) {
@@ -60,7 +53,7 @@ export function VerificationHistory({ records }: VerificationHistoryProps) {
                     {record.domain}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(record.createdAt, { addSuffix: true })}
+                    {formatDistanceToNow(new Date(record.createdAt), { addSuffix: true })}
                   </p>
                 </div>
               </div>

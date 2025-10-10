@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DomainInput } from "@/components/DomainInput";
 import { VerificationMethodCard } from "@/components/VerificationMethodCard";
 import { ProgressSteps } from "@/components/ProgressSteps";
@@ -6,6 +8,7 @@ import { VerificationInstructions } from "@/components/VerificationInstructions"
 import { VerificationStatus } from "@/components/VerificationStatus";
 import { VerificationHistory } from "@/components/VerificationHistory";
 import { FileText, Upload } from "lucide-react";
+import type { Verification } from "@shared/schema";
 
 const STEPS = [
   { id: 1, label: "Input" },
@@ -14,63 +17,71 @@ const STEPS = [
   { id: 4, label: "Complete" },
 ];
 
-// TODO: remove mock functionality
-const mockRecords = [
-  {
-    id: '1',
-    domain: 'example.com',
-    method: 'dns' as const,
-    status: 'verified' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 30),
-  },
-  {
-    id: '2',
-    domain: 'test.org',
-    method: 'file' as const,
-    status: 'failed' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-  },
-];
-
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [domain, setDomain] = useState("");
   const [method, setMethod] = useState<"dns" | "file" | null>(null);
-  const [token, setToken] = useState("");
-  const [verificationStatus, setVerificationStatus] = useState<"pending" | "verified" | "failed" | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [currentVerification, setCurrentVerification] = useState<Verification | null>(null);
+
+  // Fetch verification history
+  const { data: verifications = [] } = useQuery<Verification[]>({
+    queryKey: ["/api/verifications"],
+  });
+
+  // Create verification mutation
+  const createVerificationMutation = useMutation({
+    mutationFn: async (data: { domain: string; method: "dns" | "file" }) => {
+      return apiRequest<Verification>("/api/verifications", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: (data) => {
+      setCurrentVerification(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/verifications"] });
+    },
+  });
+
+  // Check verification mutation
+  const checkVerificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest<Verification>(`/api/verifications/${id}/check`, {
+        method: "POST",
+      });
+    },
+    onSuccess: (data) => {
+      setCurrentVerification(data);
+      setCurrentStep(4);
+      queryClient.invalidateQueries({ queryKey: ["/api/verifications"] });
+    },
+  });
 
   const handleDomainSubmit = (submittedDomain: string) => {
     setDomain(submittedDomain);
     setCurrentStep(2);
   };
 
-  const handleMethodSelect = (selectedMethod: "dns" | "file") => {
+  const handleMethodSelect = async (selectedMethod: "dns" | "file") => {
     setMethod(selectedMethod);
-    // TODO: remove mock functionality - generate real token via API
-    const mockToken = `verify-domain-${Math.random().toString(36).substring(2, 15)}`;
-    setToken(mockToken);
+    await createVerificationMutation.mutateAsync({
+      domain,
+      method: selectedMethod,
+    });
     setCurrentStep(3);
   };
 
-  const handleVerify = () => {
-    setIsVerifying(true);
-    // TODO: remove mock functionality - replace with actual API call
-    setTimeout(() => {
-      const isSuccess = Math.random() > 0.3; // 70% success rate for demo
-      setVerificationStatus(isSuccess ? "verified" : "failed");
-      setCurrentStep(4);
-      setIsVerifying(false);
-    }, 2000);
+  const handleVerify = async () => {
+    if (currentVerification?.id) {
+      await checkVerificationMutation.mutateAsync(currentVerification.id);
+    }
   };
 
   const handleReset = () => {
     setCurrentStep(1);
     setDomain("");
     setMethod(null);
-    setToken("");
-    setVerificationStatus(null);
-    setIsVerifying(false);
+    setCurrentVerification(null);
   };
 
   return (
@@ -128,23 +139,23 @@ export default function Home() {
           )}
 
           {/* Verification Instructions */}
-          {currentStep === 3 && method && (
+          {currentStep === 3 && method && currentVerification && (
             <div>
               <VerificationInstructions
                 method={method}
                 domain={domain}
-                token={token}
+                token={currentVerification.token}
                 onVerify={handleVerify}
-                isVerifying={isVerifying}
+                isVerifying={checkVerificationMutation.isPending}
               />
             </div>
           )}
 
           {/* Verification Status */}
-          {currentStep === 4 && verificationStatus && (
+          {currentStep === 4 && currentVerification && (
             <div>
               <VerificationStatus
-                status={verificationStatus}
+                status={currentVerification.status as "pending" | "verified" | "failed"}
                 domain={domain}
                 onReset={handleReset}
               />
@@ -154,7 +165,7 @@ export default function Home() {
           {/* Verification History */}
           {currentStep === 1 && (
             <div className="max-w-3xl mx-auto pt-8">
-              <VerificationHistory records={mockRecords} />
+              <VerificationHistory records={verifications} />
             </div>
           )}
         </div>

@@ -34,5 +34,11 @@ export const insertVerificationSchema = createInsertSchema(verifications).omit({
   verifiedAt: true,
 });
 
+export const createVerificationSchema = z.object({
+  domain: z.string().min(1),
+  method: z.enum(['dns', 'file']),
+});
+
 export type InsertVerification = z.infer<typeof insertVerificationSchema>;
+export type CreateVerification = z.infer<typeof createVerificationSchema>;
 export type Verification = typeof verifications.$inferSelect;
