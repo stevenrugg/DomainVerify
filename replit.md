@@ -2,11 +2,21 @@
 
 ## Overview
 
-A web application for verifying domain ownership through DNS TXT records or HTML file uploads. The platform provides a trustworthy, Plaid-inspired interface that guides users through the verification process with clear progress tracking and status updates. Built with a full-stack TypeScript architecture using React, Express, and PostgreSQL.
+A web application for verifying domain ownership through DNS TXT records or HTML file uploads. The platform provides a trustworthy, Plaid-inspired interface that guides users through the verification process with clear progress tracking and status updates. Built with a full-stack TypeScript architecture using React, Express, and in-memory storage.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (October 10, 2025)
+
+- Implemented complete domain verification flow with DNS and file upload methods
+- Created backend API routes for verification creation and status checking
+- Connected frontend to backend with proper React Query integration
+- Added DNS TXT record verification using Node.js DNS promises
+- Added HTTP file verification for domain-verification.txt files
+- Implemented verification history tracking and display
+- All features fully tested and working
 
 ## System Architecture
 
