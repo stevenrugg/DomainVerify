@@ -1,6 +1,8 @@
-import type { Express } from "express";
+// Integration reference: blueprint:javascript_log_in_with_replit
+import type { Express, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { createVerificationSchema } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -11,7 +13,6 @@ async function checkDNSVerification(domain: string, token: string): Promise<bool
     const dns = await import('dns').then(m => m.promises);
     const records = await dns.resolveTxt(`_domainverify.${domain}`);
     
-    // Check if any TXT record matches our token
     for (const record of records) {
       const value = Array.isArray(record) ? record.join('') : record;
       if (value === token) {
@@ -47,16 +48,214 @@ async function checkFileVerification(domain: string, token: string): Promise<boo
   }
 }
 
+// API Key authentication middleware
+export const requireApiKey: RequestHandler = async (req, res, next) => {
+  const apiKey = req.headers['x-api-key'] as string;
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+
+  const key = await storage.validateApiKey(apiKey);
+
+  if (!key) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  // Update last used timestamp
+  await storage.updateApiKeyLastUsed(key.id);
+
+  // Attach organization to request
+  (req as any).organizationId = key.organizationId;
+  next();
+};
+
+// Trigger webhook for verification events
+async function triggerWebhooks(organizationId: string, event: string, data: any) {
+  const webhooks = await storage.getOrganizationWebhooks(organizationId);
+  
+  for (const webhook of webhooks) {
+    if (!webhook.isActive || !webhook.events.includes(event)) {
+      continue;
+    }
+
+    try {
+      await fetch(webhook.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Event': event,
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      console.error(`Webhook error for ${webhook.url}:`, error);
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Create a new verification
-  app.post("/api/verifications", async (req, res) => {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Organization routes
+  app.post("/api/organizations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name } = req.body;
+
+      const organization = await storage.createOrganization({
+        userId,
+        name,
+      });
+
+      res.json(organization);
+    } catch (error) {
+      console.error('Failed to create organization:', error);
+      res.status(500).json({ error: 'Failed to create organization' });
+    }
+  });
+
+  app.get("/api/organizations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organizations = await storage.getUserOrganizations(userId);
+      res.json(organizations);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch organizations' });
+    }
+  });
+
+  // API Key routes (authenticated)
+  app.post("/api/organizations/:orgId/api-keys", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId } = req.params;
+      const { name } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Verify user owns this organization
+      const org = await storage.getOrganization(orgId);
+      if (!org || org.userId !== userId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const key = `dvk_${nanoid(32)}`;
+      const apiKey = await storage.createApiKey({
+        organizationId: orgId,
+        name,
+        key,
+      });
+
+      res.json(apiKey);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  app.get("/api/organizations/:orgId/api-keys", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId } = req.params;
+      const userId = req.user.claims.sub;
+
+      const org = await storage.getOrganization(orgId);
+      if (!org || org.userId !== userId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const apiKeys = await storage.getOrganizationApiKeys(orgId);
+      res.json(apiKeys);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+  });
+
+  app.delete("/api/api-keys/:keyId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { keyId } = req.params;
+      const userId = req.user.claims.sub;
+
+      // Get the API key to find its organization
+      const apiKey = await storage.getApiKey(keyId);
+      if (!apiKey) {
+        return res.status(404).json({ error: 'API key not found' });
+      }
+
+      // Verify the user owns the organization
+      const org = await storage.getOrganization(apiKey.organizationId);
+      if (!org || org.userId !== userId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      await storage.deleteApiKey(keyId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete API key' });
+    }
+  });
+
+  // Webhook routes
+  app.post("/api/organizations/:orgId/webhooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId } = req.params;
+      const { url, events } = req.body;
+      const userId = req.user.claims.sub;
+
+      const org = await storage.getOrganization(orgId);
+      if (!org || org.userId !== userId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const webhook = await storage.createWebhook({
+        organizationId: orgId,
+        url,
+        events,
+      });
+
+      res.json(webhook);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create webhook' });
+    }
+  });
+
+  app.get("/api/organizations/:orgId/webhooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId } = req.params;
+      const userId = req.user.claims.sub;
+
+      const org = await storage.getOrganization(orgId);
+      if (!org || org.userId !== userId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const webhooks = await storage.getOrganizationWebhooks(orgId);
+      res.json(webhooks);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch webhooks' });
+    }
+  });
+
+  // Public API endpoints (require API key)
+  app.post("/api/v1/verifications", requireApiKey, async (req: any, res) => {
     try {
       const { domain, method } = createVerificationSchema.parse(req.body);
+      const organizationId = req.organizationId;
       
-      // Generate a unique token
       const token = `verify-domain-${nanoid(20)}`;
       
       const verification = await storage.createVerification({
+        organizationId,
         domain,
         method,
         token,
@@ -73,13 +272,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check verification status
-  app.post("/api/verifications/:id/check", async (req, res) => {
+  app.post("/api/v1/verifications/:id/check", requireApiKey, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const organizationId = req.organizationId;
       const verification = await storage.getVerification(id);
 
-      if (!verification) {
+      if (!verification || verification.organizationId !== organizationId) {
         res.status(404).json({ error: 'Verification not found' });
         return;
       }
@@ -104,6 +303,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isVerified ? new Date() : undefined
       );
 
+      // Trigger webhooks
+      if (updated && organizationId) {
+        const event = isVerified ? 'verification.completed' : 'verification.failed';
+        await triggerWebhooks(organizationId, event, updated);
+      }
+
       res.json(updated);
     } catch (error) {
       console.error('Verification check error:', error);
@@ -111,30 +316,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all verifications
-  app.get("/api/verifications", async (req, res) => {
+  app.get("/api/v1/verifications", requireApiKey, async (req: any, res) => {
     try {
-      const verifications = await storage.getAllVerifications();
+      const organizationId = req.organizationId;
+      const verifications = await storage.getOrganizationVerifications(organizationId);
       res.json(verifications);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch verifications' });
     }
   });
 
-  // Get single verification
-  app.get("/api/verifications/:id", async (req, res) => {
+  // Dashboard routes (authenticated, for UI)
+  app.get("/api/dashboard/verifications", isAuthenticated, async (req: any, res) => {
     try {
-      const { id } = req.params;
-      const verification = await storage.getVerification(id);
-
-      if (!verification) {
-        res.status(404).json({ error: 'Verification not found' });
-        return;
+      const userId = req.user.claims.sub;
+      const organizations = await storage.getUserOrganizations(userId);
+      
+      if (organizations.length === 0) {
+        return res.json([]);
       }
 
-      res.json(verification);
+      // Get verifications for all user's organizations
+      const allVerifications = await Promise.all(
+        organizations.map(org => storage.getOrganizationVerifications(org.id))
+      );
+
+      const verifications = allVerifications.flat();
+      res.json(verifications);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch verification' });
+      res.status(500).json({ error: 'Failed to fetch verifications' });
     }
   });
 

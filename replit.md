@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 10, 2025)
 
+### API Key Security Implementation (Latest)
+- **Secure Storage**: API keys now hashed with bcrypt (10 rounds) before storage
+- **Database Schema**: Changed from plain 'key' field to 'keyHash', 'keyPrefix', 'keySuffix'
+- **Single Exposure**: Keys only visible once during creation, never retrievable afterward
+- **Masked Display**: UI shows prefix...suffix format with "(hidden for security)" indicator
+- **Authorization Fix**: DELETE endpoint now verifies organization ownership (prevents privilege escalation)
+- **Authentication**: API key validation uses bcrypt.compare() against stored hashes
+
+### Domain Verification Platform (Previous)
 - Implemented complete domain verification flow with DNS and file upload methods
 - Created backend API routes for verification creation and status checking
 - Connected frontend to backend with proper React Query integration
