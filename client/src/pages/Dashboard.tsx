@@ -453,22 +453,34 @@ export default function Dashboard() {
                                   <Eye className="h-3.5 w-3.5" />
                                 )}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => {
-                                  const keyToCopy = (key as any).key || `${key.keyPrefix}...${key.keySuffix}`;
-                                  copyToClipboard(keyToCopy, key.id);
-                                }}
-                                data-testid={`button-copy-key-${key.id}`}
-                              >
-                                {copiedKey === key.id ? (
-                                  <Check className="h-3.5 w-3.5 text-green-500" />
-                                ) : (
+                              {(key as any).key ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    copyToClipboard((key as any).key, key.id);
+                                  }}
+                                  data-testid={`button-copy-key-${key.id}`}
+                                >
+                                  {copiedKey === key.id ? (
+                                    <Check className="h-3.5 w-3.5 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-50 cursor-not-allowed"
+                                  disabled
+                                  data-testid={`button-copy-key-disabled-${key.id}`}
+                                  title="Key no longer available - it was only shown once at creation"
+                                >
                                   <Copy className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
+                                </Button>
+                              )}
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground mt-2">
@@ -657,6 +669,34 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
+                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                      <div className="flex items-start gap-3">
+                        <div className="h-5 w-5 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-orange-600 dark:text-orange-400 text-sm font-semibold">!</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm text-orange-600 dark:text-orange-400 mb-1">Security Best Practice</h4>
+                          <p className="text-sm text-orange-600/90 dark:text-orange-400/90">
+                            <strong>Never hardcode your API key in your application code.</strong> Always store it in an environment variable to prevent accidentally exposing it in version control or logs. Use <code className="text-xs bg-orange-500/20 px-1 py-0.5 rounded">process.env.API_KEY</code> in Node.js or similar patterns in other languages.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Setup: Store Your API Key Securely</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Add your API key to your environment variables. Never commit it to version control.
+                      </p>
+                      <CodeBlock
+                        code={`# .env file (add to .gitignore!)
+API_KEY=${exampleApiKey}
+
+# Or export in your shell
+export API_KEY=${exampleApiKey}`}
+                      />
+                    </div>
+
                     <div>
                       <h3 className="text-lg font-semibold mb-2">1. Create a Verification</h3>
                       <p className="text-sm text-muted-foreground mb-4">
@@ -664,7 +704,7 @@ export default function Dashboard() {
                       </p>
                       <CodeBlock
                         code={`curl -X POST https://api.example.com/api/v1/verifications \\
-  -H "X-API-Key: ${exampleApiKey}" \\
+  -H "X-API-Key: $API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "domain": "example.com",
@@ -680,7 +720,7 @@ export default function Dashboard() {
                       </p>
                       <CodeBlock
                         code={`curl -X POST https://api.example.com/api/v1/verifications/{id}/check \\
-  -H "X-API-Key: ${exampleApiKey}"`}
+  -H "X-API-Key: $API_KEY"`}
                       />
                     </div>
 
@@ -691,20 +731,20 @@ export default function Dashboard() {
                       </p>
                       <CodeBlock
                         code={`curl https://api.example.com/api/v1/verifications \\
-  -H "X-API-Key: ${exampleApiKey}"`}
+  -H "X-API-Key: $API_KEY"`}
                       />
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">JavaScript Example</h3>
+                      <h3 className="text-lg font-semibold mb-2">Node.js Example</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Using the Fetch API in Node.js or the browser.
+                        Using environment variables with the Fetch API in Node.js.
                       </p>
                       <CodeBlock
                         code={`const response = await fetch('https://api.example.com/api/v1/verifications', {
   method: 'POST',
   headers: {
-    'X-API-Key': '${exampleApiKey}',
+    'X-API-Key': process.env.API_KEY,
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
