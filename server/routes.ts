@@ -1,11 +1,11 @@
-// Integration reference: blueprint:javascript_log_in_with_replit
 import type { Express, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth";
 import { createVerificationSchema } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { config } from "./config";
 
 // DNS verification helper
 async function checkDNSVerification(domain: string, token: string): Promise<boolean> {
@@ -97,6 +97,36 @@ async function triggerWebhooks(organizationId: string, event: string, data: any)
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Public configuration endpoint (branding, etc)
+  app.get('/api/config', (req, res) => {
+    // Only include branding fields that are actually set
+    const branding: any = {
+      primaryColor: config.branding.primaryColor,
+      accentColor: config.branding.accentColor,
+      companyName: config.branding.companyName,
+    };
+
+    // Only include URLs if they're set (avoid broken image tags)
+    if (config.branding.companyWebsite) {
+      branding.companyWebsite = config.branding.companyWebsite;
+    }
+    if (config.branding.supportEmail) {
+      branding.supportEmail = config.branding.supportEmail;
+    }
+    if (config.branding.logoUrl) {
+      branding.logoUrl = config.branding.logoUrl;
+    }
+    if (config.branding.logoDarkUrl) {
+      branding.logoDarkUrl = config.branding.logoDarkUrl;
+    }
+
+    res.json({
+      appName: config.appName,
+      branding,
+      features: config.features,
+    });
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

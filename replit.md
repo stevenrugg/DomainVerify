@@ -2,11 +2,33 @@
 
 ## Overview
 
-A web application for verifying domain ownership through DNS TXT records or HTML file uploads. The platform provides a trustworthy, Plaid-inspired interface that guides users through the verification process with clear progress tracking and status updates. Built with a full-stack TypeScript architecture using React, Express, and in-memory storage.
+A white-label SaaS platform for verifying domain ownership through DNS TXT records or HTML file uploads. Built as a portable, deployable-anywhere solution with full branding customization. The platform provides a trustworthy interface with secure API key management, webhook support, and multi-tenant organization architecture. Built with a full-stack TypeScript architecture using React, Express, and PostgreSQL.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (October 11, 2025)
+
+### White-Label & Portability Implementation (Latest)
+- **Flexible Authentication**: Hybrid auth system supporting both Replit Auth (development) and generic OIDC (production)
+  - Works with Google, Auth0, Okta, Azure AD, Keycloak, and any OIDC provider
+  - Auto-detects authentication mode based on environment variables
+  - Maps standard OIDC claims to user fields
+- **Branding Configuration**:
+  - Added `/api/config` endpoint exposing customizable branding
+  - Environment-based configuration (APP_NAME, colors, logos, company info)
+  - Frontend hook `useConfig()` for accessing branding
+  - Header component uses configurable app name and logos
+  - Supports light/dark mode logos
+- **Deployment Ready**:
+  - Created comprehensive DEPLOYMENT.md with guides for Docker, Vercel, Railway, Render, AWS, GCP, Azure
+  - Dockerfile with multi-stage build for optimal image size
+  - docker-compose.yml with PostgreSQL for local/production deployment
+  - .dockerignore for optimized builds
+  - .env.example with all configuration options
+- **Configuration System**: Centralized config module with validation and defaults
+- **Documentation**: README.md and deployment guides for hosting anywhere
 
 ## Recent Changes (October 10, 2025)
 

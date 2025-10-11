@@ -4,22 +4,40 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useConfig } from "@/hooks/use-config";
 
 export function Header() {
   const { user } = useAuth();
   const [location] = useLocation();
+  const { data: config } = useConfig();
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-6">
-          <Link href="/">
-            <a className="flex items-center gap-2" data-testid="link-home-logo">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
-                <Shield className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-semibold">DomainVerify</span>
-            </a>
+          <Link href="/" data-testid="link-home-logo">
+            <div className="flex items-center gap-2 cursor-pointer">
+              {config?.branding?.logoUrl && (
+                <img 
+                  src={config.branding.logoUrl} 
+                  alt={config.appName} 
+                  className="h-9 w-auto dark:hidden"
+                />
+              )}
+              {config?.branding?.logoDarkUrl && (
+                <img 
+                  src={config.branding.logoDarkUrl} 
+                  alt={config.appName} 
+                  className="h-9 w-auto hidden dark:block"
+                />
+              )}
+              {(!config?.branding?.logoUrl && !config?.branding?.logoDarkUrl) && (
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
+                  <Shield className="h-5 w-5 text-primary-foreground" />
+                </div>
+              )}
+              <span className="text-lg font-semibold">{config?.appName || 'Domain Verify'}</span>
+            </div>
           </Link>
           
           {user && (
