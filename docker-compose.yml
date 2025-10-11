@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Application service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      # Application
+      - APP_NAME=${APP_NAME:-Domain Verify}
+      - APP_URL=${APP_URL:-http://localhost:5000}
+      - NODE_ENV=production
+      - PORT=5000
+
+      # Database (uses the PostgreSQL service)
+      - DATABASE_URL=postgresql://domainverify:domainverify@db:5432/domainverify
+
+      # Session
+      - SESSION_SECRET=${SESSION_SECRET}
+
+      # OIDC Authentication
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_SCOPE=${OIDC_SCOPE:-openid email profile}
+
+      # Branding (optional)
+      - BRAND_PRIMARY_COLOR=${BRAND_PRIMARY_COLOR:-#6366f1}
+      - BRAND_ACCENT_COLOR=${BRAND_ACCENT_COLOR:-#8b5cf6}
+      - COMPANY_NAME=${COMPANY_NAME:-Your Company}
+      - COMPANY_WEBSITE=${COMPANY_WEBSITE:-}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-}
+      - LOGO_URL=${LOGO_URL:-}
+      - LOGO_DARK_URL=${LOGO_DARK_URL:-}
+
+      # Features (optional)
+      - ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS:-true}
+      - ENABLE_ANALYTICS=${ENABLE_ANALYTICS:-false}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL database service
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=domainverify
+      - POSTGRES_USER=domainverify
+      - POSTGRES_PASSWORD=domainverify
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U domainverify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
