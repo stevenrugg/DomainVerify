@@ -13,14 +13,19 @@ Preferred communication style: Simple, everyday language.
 ### White-Label & Portability Implementation (Latest)
 - **Flexible Authentication**: Hybrid auth system supporting both Replit Auth (development) and generic OIDC (production)
   - Works with Google, Auth0, Okta, Azure AD, Keycloak, and any OIDC provider
-  - Auto-detects authentication mode based on environment variables
+  - Auto-detects authentication mode (OIDC takes precedence when configured)
   - Maps standard OIDC claims to user fields
+  - Validates configuration on startup with fail-fast error handling
 - **Branding Configuration**:
   - Added `/api/config` endpoint exposing customizable branding
   - Environment-based configuration (APP_NAME, colors, logos, company info)
   - Frontend hook `useConfig()` for accessing branding
   - Header component uses configurable app name and logos
   - Supports light/dark mode logos
+  - **Dynamic Theme System**: BrandingProvider applies brand colors to CSS variables
+    - Converts hex colors to HSL format for CSS custom properties
+    - Primary color updates `--primary`, `--sidebar-primary`, `--ring`, `--sidebar-ring`
+    - Gracefully handles missing branding fields (omits empty URLs)
 - **Deployment Ready**:
   - Created comprehensive DEPLOYMENT.md with guides for Docker, Vercel, Railway, Render, AWS, GCP, Azure
   - Dockerfile with multi-stage build for optimal image size
