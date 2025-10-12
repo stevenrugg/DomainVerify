@@ -45,17 +45,31 @@ export function validateConfig() {
     'SESSION_SECRET',
   ];
 
-  // Only require OIDC config in production or if explicitly configured
-  if (config.nodeEnv === 'production' || config.oidc.issuerUrl) {
+  // Check if Replit Auth is available (development or Replit deployment)
+  const hasReplitAuth = !!(process.env.REPL_ID || process.env.ISSUER_URL);
+  const hasOidcConfig = !!(process.env.OIDC_ISSUER_URL && process.env.OIDC_CLIENT_ID);
+
+  // Only require OIDC config if:
+  // 1. OIDC variables are partially set (must complete the setup)
+  // 2. Production mode AND no Replit Auth available
+  if (process.env.OIDC_ISSUER_URL || process.env.OIDC_CLIENT_ID) {
+    // If any OIDC var is set, require all of them
+    required.push('OIDC_ISSUER_URL', 'OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'APP_URL');
+  } else if (config.nodeEnv === 'production' && !hasReplitAuth) {
+    // In production without Replit Auth, require OIDC
     required.push('OIDC_ISSUER_URL', 'OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'APP_URL');
   }
 
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
+    const authHelp = !hasReplitAuth && !hasOidcConfig 
+      ? '\nNote: No authentication configured. Set OIDC_* variables or deploy on Replit for auth.'
+      : '';
+    
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}\n` +
-      `Please check .env.example for required configuration.`
+      `Please check .env.example for required configuration.${authHelp}`
     );
   }
 }
