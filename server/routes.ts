@@ -140,6 +140,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile routes
+  app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firstName, lastName } = req.body;
+
+      const updateSchema = z.object({
+        firstName: z.string().min(1, "First name is required"),
+        lastName: z.string().min(1, "Last name is required"),
+      });
+
+      const validated = updateSchema.parse({ firstName, lastName });
+      const updatedUser = await storage.updateUser(userId, validated);
+      
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid input', details: error.errors });
+      }
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Account deletion
+  app.delete('/api/account', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.deleteUser(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
   // Organization routes
   app.post("/api/organizations", isAuthenticated, async (req: any, res) => {
     try {

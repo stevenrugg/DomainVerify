@@ -9,6 +9,8 @@ import { BrandingProvider } from "@/components/BrandingProvider";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,7 +20,11 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       {(isAuthenticated && !isLoading) && (
-        <Route path="/dashboard" component={Dashboard} />
+        <>
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/settings" component={Settings} />
+        </>
       )}
       <Route component={NotFound} />
     </Switch>
