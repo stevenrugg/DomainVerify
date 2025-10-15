@@ -54,7 +54,7 @@ export default function Settings() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="container max-w-4xl mx-auto p-6">
         <div className="animate-pulse space-y-4">
@@ -63,10 +63,6 @@ export default function Settings() {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

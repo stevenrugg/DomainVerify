@@ -28,18 +28,24 @@ export default function Profile() {
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-    },
+    values: user ? {
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      email: user.email || "",
+    } : undefined,
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
       return await apiRequest("/api/profile", {
         method: "PATCH",
-        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+        }),
       });
     },
     onSuccess: () => {
@@ -62,7 +68,7 @@ export default function Profile() {
     updateProfileMutation.mutate(data);
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="container max-w-4xl mx-auto p-6">
         <div className="animate-pulse space-y-4">
@@ -71,10 +77,6 @@ export default function Profile() {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
