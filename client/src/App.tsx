@@ -16,13 +16,9 @@ function Router() {
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-        </>
+      <Route path="/" component={Landing} />
+      {(isAuthenticated && !isLoading) && (
+        <Route path="/dashboard" component={Dashboard} />
       )}
       <Route component={NotFound} />
     </Switch>
