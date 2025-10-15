@@ -8,9 +8,41 @@ A white-label SaaS platform for verifying domain ownership through DNS TXT recor
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 15, 2025)
+
+### User Profile & Settings Pages (Latest)
+- **Profile Page** (`/profile`):
+  - User avatar display with initials fallback
+  - Account information section showing user ID and email
+  - Editable first name and last name form with validation
+  - Backend PATCH `/api/profile` endpoint with Zod validation
+  - Success/error toast notifications
+  - Form uses Content-Type header for proper JSON serialization
+  - Reactive form values update immediately when user data changes
+- **Settings Page** (`/settings`):
+  - Notification preferences with switches for email, verification alerts, webhooks, API keys
+  - Email preferences with checkboxes for product updates, security updates, marketing
+  - API security settings (rate limiting, webhook retry configuration)
+  - Danger zone with account deletion confirmation dialog
+  - Backend DELETE `/api/account` endpoint with proper cleanup
+  - Success/error handling with toast notifications and redirect after account deletion
+- **Protected Routing**:
+  - Created `ProtectedRoute` component in App.tsx
+  - Guards `/dashboard`, `/profile`, and `/settings` routes
+  - Redirects unauthenticated users to `/api/login`
+  - Shows loading skeleton during authentication check
+  - Prevents perpetual loading states for logged-out users
+- **Storage Layer Enhancements**:
+  - Added `updateUser()` method to update user firstName and lastName
+  - Added `deleteUser()` method for account deletion
+  - Both methods work with in-memory storage (MemStorage)
+- **Navigation Integration**:
+  - Header dropdown menu includes Profile and Settings links
+  - All navigation properly integrated with authentication state
+
 ## Recent Changes (October 11, 2025)
 
-### White-Label & Portability Implementation (Latest)
+### White-Label & Portability Implementation
 - **Flexible Authentication**: Hybrid auth system supporting both Replit Auth (development) and generic OIDC (production)
   - Works with Google, Auth0, Okta, Azure AD, Keycloak, and any OIDC provider
   - Auto-detects authentication mode (OIDC takes precedence when configured)
