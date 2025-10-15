@@ -1,9 +1,17 @@
-import { Shield, LayoutDashboard, Home } from "lucide-react";
+import { Shield, LayoutDashboard, Home, LogOut, User, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useConfig } from "@/hooks/use-config";
 
 export function Header() {
@@ -42,43 +50,82 @@ export function Header() {
           
           {user && (
             <nav className="hidden md:flex items-center gap-1">
-              <Link href="/">
-                <Button 
-                  variant={location === "/" ? "secondary" : "ghost"} 
-                  size="sm"
-                  data-testid="link-home"
-                >
+              <Button 
+                variant={location === "/" ? "secondary" : "ghost"} 
+                size="sm"
+                data-testid="link-home"
+                asChild
+              >
+                <Link href="/">
                   <Home className="h-4 w-4 mr-2" />
                   Home
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button 
-                  variant={location === "/dashboard" ? "secondary" : "ghost"} 
-                  size="sm"
-                  data-testid="link-dashboard"
-                >
+                </Link>
+              </Button>
+              <Button 
+                variant={location === "/dashboard" ? "secondary" : "ghost"} 
+                size="sm"
+                data-testid="link-dashboard"
+                asChild
+              >
+                <Link href="/dashboard">
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </nav>
           )}
         </div>
         
         <div className="flex items-center gap-3">
           {user && (
-            <div className="flex items-center gap-2" data-testid="user-info">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.profileImageUrl || undefined} />
-                <AvatarFallback>
-                  {user.firstName?.[0]}{user.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden sm:inline" data-testid="text-user-name">
-                {user.firstName} {user.lastName}
-              </span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="flex items-center gap-2 hover-elevate"
+                  data-testid="button-user-menu"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.profileImageUrl || undefined} />
+                    <AvatarFallback>
+                      {user.firstName?.[0]}{user.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium hidden sm:inline" data-testid="text-user-name">
+                    {user.firstName} {user.lastName}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem data-testid="menu-item-profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem data-testid="menu-item-settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  data-testid="menu-item-logout"
+                  onClick={() => window.location.href = '/api/logout'}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <ThemeToggle />
         </div>
