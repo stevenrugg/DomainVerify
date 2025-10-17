@@ -136,7 +136,7 @@ export async function setupAuth(app: Express) {
 
     app.get("/api/callback", (req, res, next) => {
       passport.authenticate(`replitauth:${req.hostname}`, {
-        successReturnToOrRedirect: "/",
+        successReturnToOrRedirect: "/dashboard",
         failureRedirect: "/api/login",
       })(req, res, next);
     });
@@ -176,7 +176,7 @@ export async function setupAuth(app: Express) {
 
     app.get("/api/callback", (req, res, next) => {
       passport.authenticate('oidc', {
-        successReturnToOrRedirect: "/",
+        successReturnToOrRedirect: "/dashboard",
         failureRedirect: "/api/login",
       })(req, res, next);
     });
