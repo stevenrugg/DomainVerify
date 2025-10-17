@@ -1,4 +1,4 @@
-import { Shield, LayoutDashboard, Home, LogOut, User, Settings } from "lucide-react";
+import { Shield, LayoutDashboard, LogOut, User, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,17 +50,6 @@ export function Header() {
           
           {user && (
             <nav className="hidden md:flex items-center gap-1">
-              <Button 
-                variant={location === "/" ? "secondary" : "ghost"} 
-                size="sm"
-                data-testid="link-home"
-                asChild
-              >
-                <Link href="/">
-                  <Home className="h-4 w-4 mr-2" />
-                  Home
-                </Link>
-              </Button>
               <Button 
                 variant={location === "/dashboard" ? "secondary" : "ghost"} 
                 size="sm"
