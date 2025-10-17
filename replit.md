@@ -10,7 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 15, 2025)
 
-### User Profile & Settings Pages (Latest)
+### Login Flow Enhancement (Latest)
+- **Post-Login Redirect**: Users now redirect to `/dashboard` after successful login (both Replit Auth and OIDC modes)
+- **User Experience**: Authenticated users no longer see the landing page after login; they go directly to the dashboard
+- **Landing Page Access**: Users can still navigate to `/` if desired, but initial login flow directs to dashboard
+
+### User Profile & Settings Pages
 - **Profile Page** (`/profile`):
   - User avatar display with initials fallback
   - Account information section showing user ID and email
