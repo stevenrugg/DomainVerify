@@ -11,6 +11,7 @@ import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
+import ApiVerification from "@/pages/ApiVerification";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
       </Route>
+      <Route path="/verify" component={ApiVerification} />
       <Route component={NotFound} />
     </Switch>
   );

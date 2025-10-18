@@ -52,9 +52,9 @@ export function VerificationInstructions({
             <div className="bg-accent/50 border border-accent-border rounded-lg p-4 flex gap-3">
               <AlertCircle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-accent-foreground">DNS propagation may take time</p>
+                <p className="font-medium text-accent-foreground">DNS propagation timing</p>
                 <p className="text-accent-foreground/80 mt-1">
-                  It can take up to 48 hours for DNS changes to propagate, though it's usually much faster (5-15 minutes).
+                  Most domain registrars will update DNS records in 10-15 minutes. However, full DNS propagation can take up to 48 hours depending on your provider and network conditions.
                 </p>
               </div>
             </div>
