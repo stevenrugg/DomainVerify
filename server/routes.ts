@@ -414,6 +414,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session-based verification endpoints (for authenticated users)
+  app.post("/api/verifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const { domain, method } = createVerificationSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      // Get or create default organization for user
+      let organizations = await storage.getUserOrganizations(userId);
+      let organizationId: string;
+      
+      if (organizations.length === 0) {
+        // Create a default organization for the user
+        const org = await storage.createOrganization({
+          userId,
+          name: "Default Organization",
+        });
+        organizationId = org.id;
+      } else {
+        organizationId = organizations[0].id;
+      }
+      
+      const token = `verify-domain-${nanoid(20)}`;
+      
+      const verification = await storage.createVerification({
+        organizationId,
+        domain,
+        method,
+        token,
+        status: 'pending',
+      });
+
+      res.json(verification);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        console.error('Failed to create verification:', error);
+        res.status(500).json({ error: 'Failed to create verification' });
+      }
+    }
+  });
+
+  app.get("/api/verifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organizations = await storage.getUserOrganizations(userId);
+      
+      if (organizations.length === 0) {
+        return res.json([]);
+      }
+
+      // Get verifications for all user's organizations
+      const allVerifications = await Promise.all(
+        organizations.map(org => storage.getOrganizationVerifications(org.id))
+      );
+
+      const verifications = allVerifications.flat();
+      res.json(verifications);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch verifications' });
+    }
+  });
+
+  app.post("/api/verifications/:id/check", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Get the verification and ensure user owns it
+      const verification = await storage.getVerification(id);
+      if (!verification) {
+        return res.status(404).json({ error: 'Verification not found' });
+      }
+      
+      // Check if user owns the organization
+      if (verification.organizationId) {
+        const org = await storage.getOrganization(verification.organizationId);
+        if (!org || org.userId !== userId) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+
+      const { domain, method, token } = verification;
+      let isVerified = false;
+
+      if (method === 'dns') {
+        isVerified = await checkDNSVerification(domain, token);
+      } else if (method === 'file') {
+        isVerified = await checkFileVerification(domain, token);
+      }
+
+      const status = isVerified ? 'verified' : 'failed';
+      const updated = await storage.updateVerificationStatus(
+        id,
+        status,
+        isVerified ? new Date() : undefined
+      );
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Verification check error:', error);
+      res.status(500).json({ error: 'Failed to check verification' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
