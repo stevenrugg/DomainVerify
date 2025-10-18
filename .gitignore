@@ -1,4 +1,8 @@
 node_modules
+replit.md
+DEPLOYMENT.md
+design_guidelines.md
+.replit
 dist
 .DS_Store
 server/public
